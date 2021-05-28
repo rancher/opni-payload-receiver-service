@@ -32,7 +32,6 @@ async def push_to_nats(nats: NATS, payload):
     try:
         df = pd.json_normalize(payload)
         if "time" in df.columns:
-            logging.info(str(df['temp'].tolist()))
             df.time.replace(r"^\s*$", np.nan, regex=True, inplace=True)
             df.loc[~df.time.notnull(), "time"] = pd.to_datetime("now", utc=True)
         else:
