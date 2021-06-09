@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Request
 from nats.aio.client import Client as NATS
-from nats_wrapper import NatsWrapper
+from opni_nats import NatsWrapper
 
 app = FastAPI()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(message)s")
