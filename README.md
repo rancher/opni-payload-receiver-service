@@ -4,8 +4,3 @@
   * Pre-requisite: **traefik** is already installed
 * The service does some time window processing and passes the
 payload to NATS.
-
-
-```
-kubectl apply -f payload-receiver-service.yaml
-```
