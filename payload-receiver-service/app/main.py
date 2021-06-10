@@ -35,7 +35,9 @@ async def push_to_nats(nats: NATS, payload):
             df.time.replace(r"^\s*$", np.nan, regex=True, inplace=True)
             df.loc[~df.time.notnull(), "time"] = pd.to_datetime("now", utc=True)
         else:
-            df["time"] = pd.to_datetime("now", utc=True).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            df["time"] = pd.to_datetime("now", utc=True).strftime(
+                "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
             logging.info("Setting current UTC time to payload without timestamps")
         df["dt"] = pd.to_datetime(df.time, errors="coerce", utc=True)
         df["time_nanoseconds"] = df["dt"].astype(np.int64)
@@ -50,7 +52,7 @@ async def push_to_nats(nats: NATS, payload):
         if "id" in df.columns:
             df["id"] = df["id"].map(str)
 
-        for window_start_time_ns, data_df in df.groupby(["window_start_time_ns"]):
+        for _, data_df in df.groupby(["window_start_time_ns"]):
             window_payload_size_bytes = data_df.memory_usage(deep=True).sum()
             num_chunked_dfs = max(
                 1, math.ceil(window_payload_size_bytes / nats.max_payload)
@@ -66,12 +68,12 @@ async def push_to_nats(nats: NATS, payload):
                 await nats.publish("raw_logs", chunked_payload_df.to_json().encode())
 
     except Exception as e:
-        logging.error("Error: {}".format(str(e)))
+        logging.error(f"Error: {str(e)}")
 
 
 @app.post("/")
 async def index(request: Request):
-    logging.info("Received request: {}".format(str(request)))
+    logging.info(f"Received request: {str(request)}")
     try:
         logs_payload = await request.json()
         asyncio.create_task(push_to_nats(await get_nats(), logs_payload))
