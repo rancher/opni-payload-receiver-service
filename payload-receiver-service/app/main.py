@@ -33,7 +33,9 @@ async def push_to_nats(nats: NATS, payload):
         df = pd.json_normalize(payload)
         if "time" in df.columns:
             df.time.replace(r"^\s*$", np.nan, regex=True, inplace=True)
-            df.loc[~df.time.notnull(), "time"] = pd.to_datetime("now", utc=True)
+            df.loc[~df.time.notnull(), "time"] = pd.to_datetime(
+                "now", utc=True
+            ).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         else:
             df["time"] = pd.to_datetime("now", utc=True).strftime(
                 "%Y-%m-%dT%H:%M:%S.%fZ"
