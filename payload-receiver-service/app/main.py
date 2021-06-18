@@ -36,6 +36,24 @@ async def push_to_nats(nats: NATS, payload):
             df.loc[~df.time.notnull(), "time"] = pd.to_datetime(
                 "now", utc=True
             ).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            # normalize time field
+            df["time"] = df["time"].astype(str)
+            df["time_length"] = df["time"].str.len()
+            for group_name, df_group in df.groupby("time_length"):
+                # normalize all unix timestamp to ns
+                if all(pd.to_numeric(df_group["time"], errors="coerce").notna()):
+                    df_group["time"] = df_group["time"].apply(
+                        lambda d: int(f"{int(float(d)):0<19d}")
+                    )
+                    if group_name > 19:
+                        df_group["time"] = int(
+                            df_group["time"] / (10 ** (group_name - 19))
+                        )
+                df_group["time"] = pd.to_datetime(
+                    df_group["time"], unit="ns", utc=True
+                ).dt.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+                for idx, row in df_group.iterrows():
+                    df.loc[idx, "time"] = row["time"]
         else:
             df["time"] = pd.to_datetime("now", utc=True).strftime(
                 "%Y-%m-%dT%H:%M:%S.%fZ"
