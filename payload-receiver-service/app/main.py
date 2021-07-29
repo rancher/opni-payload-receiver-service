@@ -64,10 +64,10 @@ async def push_to_nats(nats: NATS, payload):
         # compute window
         df["window_dt"] = df["dt"].dt.floor("30s")
         df["window_start_time_ns"] = df["window_dt"].astype(np.int64)
-        df.drop(columns=["dt"], inplace=True)
         df["_id"] = df["time_nanoseconds"].map(str) + df.groupby(
             "time_nanoseconds"
         ).cumcount().map("{:016b}".format)
+        df.drop(columns=["dt", "time_nanoseconds"], inplace=True)
         df = df.fillna("")
         if "id" in df.columns:
             df["id"] = df["id"].map(str)
