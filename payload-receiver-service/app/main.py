@@ -62,7 +62,7 @@ async def push_to_nats(nats: NATS, payload):
         df["dt"] = pd.to_datetime(df.time, errors="coerce", utc=True)
         df["time_nanoseconds"] = df["dt"].astype(np.int64)
         # compute window
-        df["window_dt"] = df["dt"].dt.floor("30s")
+        df["window_dt"] = df["dt"].dt.floor("60s")
         df["window_start_time_ns"] = df["window_dt"].astype(np.int64)
         df["_id"] = df["time_nanoseconds"].map(str) + df.groupby(
             "time_nanoseconds"
