@@ -1,0 +1,8 @@
+
+*.pyc
+*.idea/*
+*.idea
+*.vscode/*
+*.vscode
+*.DS_Store
+payload-receiver-service/tests/integration/kube.yaml
