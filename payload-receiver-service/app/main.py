@@ -64,6 +64,13 @@ async def push_to_nats(nats: NATS, payload):
         # compute window
         df["window_dt"] = df["dt"].dt.floor("60s")
         df["window_start_time_ns"] = df["window_dt"].astype(np.int64)
+        df["insights_10min_bin"] = df["dt"].dt.floor("600s").astype(np.int64) // 10 ** 6
+        df["insights_30min_bin"] = (
+            df["dt"].dt.floor("1800s").astype(np.int64) // 10 ** 6
+        )
+        df["insights_60min_bin"] = (
+            df["dt"].dt.floor("3600s").astype(np.int64) // 10 ** 6
+        )
         df["_id"] = df["time_nanoseconds"].map(str) + df.groupby(
             "time_nanoseconds"
         ).cumcount().map("{:016b}".format)
