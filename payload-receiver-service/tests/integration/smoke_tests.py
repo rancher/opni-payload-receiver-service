@@ -18,7 +18,6 @@ fake = Faker()
 log_data = ('{"log": {"0":"' + fake.sentence(10) + '"}}')
 tr_queue = Queue()
 
-
 def test_prs_happy_path():
     
     # This test is to verify the happy path functionality of the Payload Receiver Service (PRS). 
@@ -243,7 +242,6 @@ async def init_nats():
     print("Attempting to connect to NATS")
     await nw.connect()
     assert nw.connect().__init__
-
 
 def start_background_loop(loop: asyncio.AbstractEventLoop) -> None:
     asyncio.set_event_loop(loop)
