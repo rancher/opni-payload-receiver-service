@@ -1,27 +1,24 @@
+# Standard Library
 import asyncio
 import json
 import subprocess
 import time
-from queue import Queue
-from subprocess import PIPE, Popen
-from threading import Thread
-from pytest import fixture
 from datetime import datetime
+from queue import Queue
+from threading import Thread
 
+# Third Party
 import requests
 from faker import Faker
 from nats.aio.client import Client as NATS
-from nats.aio.errors import ErrConnectionClosed, ErrNoServers, ErrTimeout
 from opni_nats import NatsWrapper
 
-
-kube_fname = "kube.yaml"
 nw = NatsWrapper()
 fake = Faker()
 log_data = ('{"log": {"0":"' + fake.sentence(10) + '"}}')
 tr_queue = Queue()
 
- 
+
 def test_prs_happy_path():
     
     # This test is to verify the happy path functionality of the Payload Receiver Service (PRS). 
@@ -32,12 +29,12 @@ def test_prs_happy_path():
         # _id
 
     # nats subscribe
-    t = subscribe(tr_queue, log_data)
+    subscribe(tr_queue, log_data)
     
     wait_for_seconds(2)
 
     print('Sending Dataset')
-    r = requests.post("opni-svc-payload-receiver.opni-cluster.svc.cluster.local:80",
+    r = requests.post("http://opni-svc-payload-receiver.opni.svc.cluster.local:80",
             data=log_data,
             verify=False)
         
@@ -53,9 +50,6 @@ def test_prs_happy_path():
             raise Exception("Bad Request sent to API")
     
     wait_for_seconds(2)
-
-    loop = asyncio.get_event_loop()
-    loop.stop()
 
     json_payload = tr_queue.get()
     tr_queue.task_done()
@@ -63,18 +57,20 @@ def test_prs_happy_path():
     assert json_payload["window_dt"]["0"] != None
     assert json_payload["window_start_time_ns"]["0"] != None
     assert json_payload["_id"]["0"] != None
+    empty_queue(tr_queue)
+
 
 def test_prs_time_assertion():
     
     # This test is to verify the happy path functionality of the time output of the Payload Receiver Service (PRS). 
 
     # nats subscribe
-    t = subscribe(tr_queue, log_data)
+    subscribe(tr_queue, log_data)
     
     wait_for_seconds(2)
 
     print('Sending Dataset')
-    r = requests.post("opni-svc-payload-receiver.opni-cluster.svc.cluster.local:80",
+    r = requests.post("http://opni-svc-payload-receiver.opni.svc.cluster.local:80",
             data=log_data,
             verify=False)
         
@@ -91,12 +87,8 @@ def test_prs_time_assertion():
     
     wait_for_seconds(2)
 
-    loop = asyncio.get_event_loop()
-    loop.stop()
-
     json_payload = tr_queue.get()
     tr_queue.task_done()
-
     now = datetime.now()
     #This should be getting the current time and setting it to be a date/timestamp with the format YYYY-MM-DDTHH:MM:SS
     current_datetime = now.strftime("%Y-%m-%dT%H:%M:%S")
@@ -105,24 +97,28 @@ def test_prs_time_assertion():
     #This should be setting the first 19 characters to be a timestamp with the format YYYY-MM-DDTHH:MM:SS
     payload_datetime = datetime.strptime(payload_date, "%Y-%m-%dT%H:%M:%S")
     assert current_datetime >= str(payload_datetime)
+    empty_queue(tr_queue)
+
 
 def test_prs_unique_id():
     
     # This test is to verify the each log submitted to the Payload Receiver Service (PRS) is unique. 
         
     # nats subscribe
-    t = subscribe(tr_queue, log_data)
+    subscribe(tr_queue, log_data)
     
     wait_for_seconds(2)
 
+    log_data1 = ('{"log": {"0":"' + fake.sentence(10) + '"}}')
     print('Sending Dataset 1')
-    r = requests.post("opni-svc-payload-receiver.opni-cluster.svc.cluster.local:80",
-            data=log_data,
+    r = requests.post("http://opni-svc-payload-receiver.opni.svc.cluster.local:80",
+            data=log_data1,
             verify=False)
     json_payload_1 = tr_queue.get()
     tr_queue.task_done()
     id_1 = json_payload_1["_id"]["0"]
     print('First ID:', id_1)
+    empty_queue(tr_queue)
 
     if len(r.content) != 0:
         print(("Request Content: "), r.content)
@@ -135,16 +131,18 @@ def test_prs_unique_id():
         if r.status_code != 200:
             raise Exception("Bad Request sent to API")
 
-    wait_for_seconds(2)
+    wait_for_seconds(5)
 
+    log_data2 = ('{"log": {"0":"' + fake.sentence(10) + '"}}')
     print('Sending Dataset 2')
-    r2 = requests.post('opni-svc-payload-receiver.opni-cluster.svc.cluster.local:80',
-            data=log_data,
+    r2 = requests.post('http://opni-svc-payload-receiver.opni.svc.cluster.local:80',
+            data=log_data2,
             verify=False)
     json_payload_2 = tr_queue.get()
     tr_queue.task_done()
     id_2 = json_payload_2["_id"]["0"]
     print('Second ID:', id_2)
+    empty_queue(tr_queue)
         
     if len(r2.content) != 0:
         print(('Request Content: '), r2.content)
@@ -159,10 +157,8 @@ def test_prs_unique_id():
     
     wait_for_seconds(2)
 
-    loop = asyncio.get_event_loop()
-    loop.stop()
-
     assert id_2 != id_1
+
 
 def test_prs_large_log():
     
@@ -177,12 +173,12 @@ def test_prs_large_log():
     {"log": {"6": "' + fake.sentence(100000) + '"}}]';
 
     # nats subscribe
-    t = subscribe(tr_queue, large_log_data)
+    subscribe(tr_queue, large_log_data)
     
     wait_for_seconds(2)
 
     print('Sending Dataset')
-    r = requests.post('opni-svc-payload-receiver.opni-cluster.svc.cluster.local:80',
+    r = requests.post('http://opni-svc-payload-receiver.opni.svc.cluster.local:80',
             data=large_log_data,
             verify=False)
         
@@ -199,9 +195,6 @@ def test_prs_large_log():
     
     wait_for_seconds(2)
 
-    loop = asyncio.get_event_loop()
-    loop.stop()
-
     json_payload = tr_queue.get()
     tr_queue.task_done()
     assert json_payload["time"]["0"] != None
@@ -209,12 +202,19 @@ def test_prs_large_log():
     assert json_payload["window_start_time_ns"]["0"] != None
     assert json_payload["_id"]["0"] != None
     print(json_payload["_id"])
+    empty_queue(tr_queue)
 
 
 def wait_for_seconds(seconds):
     start_time = time.time()
     while time.time() - start_time < seconds:
         continue
+
+
+def empty_queue(q: asyncio.Queue):
+    for _ in range(q.qsize()):
+        q.get_nowait()
+        q.task_done()
 
 
 def check_logs(incoming, expected):
@@ -224,6 +224,8 @@ def check_logs(incoming, expected):
 
 async def consume_logs(trqueue, logdata):
     async def subscribe_handler(msg):
+        sbj = msg.subject
+        print('Subscribing to the "' + sbj + '" subject')
         payload_data = msg.data.decode()
         if check_logs(payload_data, logdata):
             trqueue.put(True)
@@ -241,6 +243,7 @@ async def init_nats():
     print("Attempting to connect to NATS")
     await nw.connect()
     assert nw.connect().__init__
+
 
 def start_background_loop(loop: asyncio.AbstractEventLoop) -> None:
     asyncio.set_event_loop(loop)

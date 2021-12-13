@@ -1,19 +1,21 @@
 FROM python:3.7.0
 
-ARG KUBECTL_VERSION=v1.16.6
-ENV WORKSPACE /src/payload-receiver-service
+ENV WORKSPACE /src
 WORKDIR $WORKSPACE
-ENV PYTHONPATH /src/payload-receiver-service
-ARG RKE_VERSION=v1.0.2
-ARG CLI_VERSION=v2.3.2
-ARG RANCHER_HELM_VERSION=v3.6.0
-ARG SONOBUOY_VERSION=0.18.2
-ARG TERRAFORM_VERSION=0.12.10
+ENV NATS_SERVER_URL=nats://opni-nats-client.opni.svc.cluster.local:4222
+ENV NATS_USERNAME=nats-user
+ENV NATS_PASSWORD=
+
+RUN pip install --upgrade pip
+
+COPY ["/payload-receiver-service/tests/integration/requirements.txt", "$WORKSPACE/payload-receiver-service/tests/integration/requirements.txt"]
+
+RUN cd $WORKSPACE && \
+    pip install -r payload-receiver-service/tests/integration/requirements.txt
 
 COPY [".", "$WORKSPACE"]
 
-RUN cd $WORKSPACE && \
-    pip install --upgrade pip && \
-    pip install -r requirements-sono.txt
+RUN cd $WORKSPACE && ls && \
+    chmod +x ./payload-receiver-service/tests/integration/run_sono.sh
 
-ENTRYPOINT ["./run_sono.sh"]
+ENTRYPOINT ["./payload-receiver-service/tests/integration/run_sono.sh"]
