@@ -10,13 +10,13 @@ from threading import Thread
 # Third Party
 import requests
 from faker import Faker
-from nats.aio.client import Client as NATS
 from opni_nats import NatsWrapper
 
 nw = NatsWrapper()
 fake = Faker()
 log_data = ('{"log": {"0":"' + fake.sentence(10) + '"}}')
 tr_queue = Queue()
+
 
 def test_prs_happy_path():
     
@@ -242,6 +242,7 @@ async def init_nats():
     print("Attempting to connect to NATS")
     await nw.connect()
     assert nw.connect().__init__
+
 
 def start_background_loop(loop: asyncio.AbstractEventLoop) -> None:
     asyncio.set_event_loop(loop)

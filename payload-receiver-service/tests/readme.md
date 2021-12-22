@@ -1,65 +1,34 @@
-# Validation scripts for Payload Receiver Service
+## Validation scripts for Payload Receiver Service
+
 Validation tests are run in a similar way to integration tests.
 
 ## Test Environment Setup:
 
-Setup a Kubernetes cluster
+Setup a Kubernetes cluster and save the Kubeconfig to the `.kube/config` file.
 
-Follow the first 3 steps pf the Basic Installation Instructions in the Opni Docs: https://opni.io/deployment/basic/
-
-Save a local copy of the Opni yaml file: https://raw.githubusercontent.com/rancher/opni/main/deploy/manifests/20_cluster.yaml
-
-In the yaml file, modify the *authMethod* value to be "username"
+## Install Opni and Run Sonobuoy Tests:
 
 Run the command: 
 ```
-kubectl apply -f {File path for the local yaml file}
+bash ./opni-payload-receiver-service/payload-receiver-service/tests/sonobuoy/sonobuoy_run.sh
 ```
 
-## Locate the NATs password
+Unzip the test results tar.gz file to reveiw the test results.
 
-In Rancher's Cluster Explorer view for the Kubernetes cluster, navigate to the Secrets page
+## To run the Sonobuoy tests after Opni is already installed:
 
-Select opni-nats-client, and get the password from that page
-
-## Download and update Docker Image:
-
-Save a local copy of the Docker Image: 
-```
-docker pull jamesonmcg/opni-preprocessing-service-sonobuoy:0.1.0
-docker tag jamesonmcg/opni-preprocessing-service-sonobuoy:0.1.0 {Docker Hub Account}/opni-preprocessing-service-sonobuoy:0.1.0
-```
-
-*Please do not push changes to the originator Docker Hub*
-
-## Set NATs Password Environment Variable:
-
-Open the file /opni-payload-receiver-service/payload-receiver-service/tests/sonobuoy/Dockerfile.sonobuoy
-
-Set the NATS_PASSWORD= value to the password obtained above, and save the file
-
-Open the file /opni-payload-receiver-service/payload-receiver-service/tests/sonobuoy/opnisono-plugin.yaml
-
-Set the *image* value to the Docker Hub account and tag: {Docker Hub Account}/opni-preprocessing-service-sonobuoy:0.1.0, and save the file
-
-Run the command:
-```
-docker push {Docker Hub Account}/opni-preprocessing-service-sonobuoy:0.1.0
-```
-
-*Note: The NATS_PASSWORD value in Dockerfile.sonobuoy must be updated and push to Docker Hub when creating a new cluster*
-
-### Now run the Sonobuoy tests from the repo source dir and get the results:
+Ensure that the `authMethod` value for the Opni cluster is changed from `nkey` to `username`.
+Ensure that the `cluster-nats-client` secret's password value is set to `nats-password`
 
 Run the command: 
 ```
 sonobuoy run \
---kubeconfig {Local kubeconfig.yml file path} \
+--kubeconfig ~/.kube/config \
 --namespace "opni-sono" \
---plugin https://raw.githubusercontent.com/rancher/opni-payload-receiver-service/a9c6a90eab01328357c7437234d7da021cf36853/payload-receiver-service/tests/sonobuoy/opnisono-plugin.yaml
+--plugin https://raw.githubusercontent.com/rancher/opni-payload-receiver-service/99ae45cd629c3912f5539eebe008e8ac09e18bc7/payload-receiver-service/tests/sonobuoy/opnisono-plugin.yaml
 ```
 
-Periodically run the command until the tests are complete:
+Periodically run the following command until the tests are complete:
 ```
 sonobuoy status -n opni-sono
 ```
@@ -69,7 +38,10 @@ Run the following command and a tar file with the test results will be generated
 sonobuoy retrieve -n opni-sono
 ```
 
-### Helpful docs:
+Unzip the test results tar.gz file to reveiw the test results.
+
+## Helpful docs:
+
 Opni Basic Installation Docs: https://opni.io/deployment/basic/
 
 Opni NATs Configuration Docs: https://opni.io/configuration/nats/
