@@ -55,12 +55,15 @@ async def send_all_results_to_nats(es, start_ts, end_ts):
 
 async def fetch_logs():
     es = await setup_es_connection()
+    query_time = 0
     try:
         current_ts = int((datetime.now().timestamp() - TIME_RANGE_SECONDS) * 1000)
         while True:
-            await asyncio.sleep(TIME_RANGE_SECONDS)
+            await asyncio.sleep(TIME_RANGE_SECONDS - min(query_time, TIME_RANGE_SECONDS))
             end_ts = current_ts + (TIME_RANGE_SECONDS * 1000)
+            start_time = time.time()
             await send_all_results_to_nats(es, current_ts, end_ts)
+            query_time = time.time() - start_time
             current_ts += (TIME_RANGE_SECONDS * 1000)
     except Exception as e:
         logging.error(f"Unable to access Opensearch. {e}")
