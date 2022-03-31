@@ -60,13 +60,12 @@ async def fetch_logs():
         current_ts = int((datetime.now().timestamp() - TIME_RANGE_SECONDS) * 1000)
         last_fetched_exists = await es.indices.exists("last_fetched")
         last_fetched_timestamp_results = None
-        # On startup, check if index last_fetched already exists. Create it if it doesn't.
+        # On startup, check if index last_fetched already exists.
         if last_fetched_exists:
             last_fetched_timestamp_results = (await es.search(index="last_fetched", body={"query": {"match_all": {}}}))["hits"]["hits"][0]
             last_fetched_timestamp = last_fetched_timestamp_results["_source"]["last_fetched_timestamp"]
             await send_all_results_to_nats(es, last_fetched_timestamp, current_ts)
-        else:
-            await es.index(index="last_fetched", body={"last_fetched_timestamp": current_ts})
+            await es.update(index="last_fetched", doc_type=last_fetched_timestamp_results["_type"], id=last_fetched_timestamp_results["_id"], body={"doc": {"last_fetched_timestamp": current_ts}})
 
         while True:
             await asyncio.sleep(TIME_RANGE_SECONDS - min(query_time, TIME_RANGE_SECONDS))
@@ -74,7 +73,9 @@ async def fetch_logs():
             start_time = time.time()
             await send_all_results_to_nats(es, current_ts, end_ts)
             if last_fetched_timestamp_results:
-                await es.update(index="last_fetched", doc_type=last_fetched_timestamp_results["_type"], id=last_fetched_timestamp_results["_id"], body={"doc": {"last_fetched_timestamp": current_ts}})
+                await es.update(index="last_fetched", doc_type=last_fetched_timestamp_results["_type"], id=last_fetched_timestamp_results["_id"], body={"doc": {"last_fetched_timestamp": end_ts}})
+            else:
+                await es.index(index="last_fetched", body={"last_fetched_timestamp": end_ts})
             query_time = time.time() - start_time
             current_ts += (TIME_RANGE_SECONDS * 1000)
     except Exception as e:
