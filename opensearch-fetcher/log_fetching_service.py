@@ -62,20 +62,17 @@ async def fetch_logs():
         last_fetched_timestamp_results = None
         # On startup, check if index last_fetched already exists.
         if last_fetched_exists:
-            last_fetched_timestamp_results = (await es.search(index="last_fetched", body={"query": {"match_all": {}}}))["hits"]["hits"][0]
-            last_fetched_timestamp = last_fetched_timestamp_results["_source"]["last_fetched_timestamp"]
-            await send_all_results_to_nats(es, last_fetched_timestamp, current_ts)
-            await es.update(index="last_fetched", doc_type=last_fetched_timestamp_results["_type"], id=last_fetched_timestamp_results["_id"], body={"doc": {"last_fetched_timestamp": current_ts}})
+            latest_fetched_timestamp_results = await es.search(index="last_fetched",body={"aggs": {"latest_timestamp": { "max": {"field": "last_fetched_timestamp"}}}}, size=1)
+            latest_fetched_timestamp = int(latest_fetched_timestamp_results["aggregations"]["latest_timestamp"]["value"])
+            await send_all_results_to_nats(es, latest_fetched_timestamp, current_ts)
+            await es.index(index="last_fetched", body={"last_fetched_timestamp": current_ts})
 
         while True:
             await asyncio.sleep(TIME_RANGE_SECONDS - min(query_time, TIME_RANGE_SECONDS))
             end_ts = current_ts + (TIME_RANGE_SECONDS * 1000)
             start_time = time.time()
             await send_all_results_to_nats(es, current_ts, end_ts)
-            if last_fetched_timestamp_results:
-                await es.update(index="last_fetched", doc_type=last_fetched_timestamp_results["_type"], id=last_fetched_timestamp_results["_id"], body={"doc": {"last_fetched_timestamp": end_ts}})
-            else:
-                await es.index(index="last_fetched", body={"last_fetched_timestamp": end_ts})
+            await es.index(index="last_fetched", body={"last_fetched_timestamp": end_ts})
             query_time = time.time() - start_time
             current_ts += (TIME_RANGE_SECONDS * 1000)
     except Exception as e:
@@ -128,7 +125,7 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     log_fetching_coroutine = fetch_logs()
 
-    loop.run_until_complete( asyncio.gather(init_nats(), wait_for_index()))
+    loop.run_until_complete(asyncio.gather(init_nats(), wait_for_index()))
     log_fetching_task = loop.create_task(log_fetching_coroutine)
     loop.run_until_complete(log_fetching_task)
 
