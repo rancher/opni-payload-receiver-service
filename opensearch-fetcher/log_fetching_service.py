@@ -59,7 +59,6 @@ async def fetch_logs():
     try:
         current_ts = int((datetime.now().timestamp() - TIME_RANGE_SECONDS) * 1000)
         last_fetched_exists = await es.indices.exists("last_fetched")
-        last_fetched_timestamp_results = None
         # On startup, check if index last_fetched already exists.
         if last_fetched_exists:
             latest_fetched_timestamp_results = await es.search(index="last_fetched",body={"aggs": {"latest_timestamp": { "max": {"field": "last_fetched_timestamp"}}}}, size=1)
