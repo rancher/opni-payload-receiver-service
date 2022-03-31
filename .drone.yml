@@ -12,6 +12,7 @@ steps:
   image: rancher/hardened-build-base:v1.15.8b5
   commands:
   - make DRONE_TAG=${DRONE_TAG}
+  - make DRONE_TAG=${DRONE_TAG} image-build-payload
   volumes:
   - name: docker
     path: /var/run/docker.sock
@@ -21,6 +22,7 @@ steps:
   commands:
   - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
   - make DRONE_TAG=${DRONE_TAG} image-push image-manifest
+  - make DRONE_TAG=${DRONE_TAG} image-push-payload image-manifest-payload
   environment:
     DOCKER_PASSWORD:
       from_secret: docker_password
@@ -37,6 +39,7 @@ steps:
   image: rancher/hardened-build-base:v1.15.8b5
   commands:
   - make DRONE_TAG=${DRONE_TAG} image-scan
+  - make DRONE_TAG=${DRONE_TAG} image-scan-payload
   volumes:
   - name: docker
     path: /var/run/docker.sock
