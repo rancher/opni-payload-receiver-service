@@ -28,6 +28,7 @@ image-build:
 .PHONY: image-build-payload
 image-build-payload:
 	docker build \
+		--file Dockerfile.payload \
 		--pull \
 		--build-arg PKG=$(PKG) \
 		--build-arg SRC=$(SRC) \
