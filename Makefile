@@ -41,7 +41,7 @@ image-push:
 	docker push $(ORG)/$(REPO):$(TAG)-$(ARCH)
 
 .PHONY: image-push-payload
-image-push:
+image-push-payload:
 	docker push $(ORG)/$(REPO-PAYLOAD):$(TAG)-$(ARCH)
 
 .PHONY: image-manifest
