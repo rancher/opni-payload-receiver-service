@@ -45,7 +45,7 @@ async def send_all_results_to_nats(es, start_ts, end_ts):
                     result_dict = result["_source"].copy()
                     result_dict["_id"] = result["_id"]
                     accumulated_results.append(result_dict)
-                accumulated_results_df = pd.DataFrame(accumulated_results)
+                accumulated_results_df = pd.json_normalize(accumulated_results)
                 logging.info("Published {} logs to Nats now".format(len(accumulated_results)))
                 await nw.publish("raw_logs", accumulated_results_df.to_json().encode())
             else:
